@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-cn-Hans">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- <meta http-equiv="X-UA-Compatible" content="ie=edge"> -->
+    <link rel="stylesheet" href="./css/font-awesome.min.css">
+    <title>音乐播放器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        #music-box {
+            width: 300px;
+            padding: 20px 20px 5px 20px;
+            border: 1px solid green;
+            color: pink;
+            font-size: 16px;
+        }
+
+        .music::after {
+            content: "";
+            display: block;
+            clear: both;
+        }
+
+        .control {
+            float: left;
+            padding: 10px;
+            font-size: 20px;
+        }
+
+        .info {
+            float: left;
+        }
+
+        .backward,
+        .play,
+        .forward {
+            cursor: pointer;
+            padding: 10px;
+        }
+
+        .info {
+            padding: 10px;
+        }
+
+        .full-time {
+            cursor: pointer;
+            width: 250px;
+            height: 3px;
+            background-color: gray;
+        }
+
+        .current-time {
+            width: 0;
+            height: 3px;
+            background-color: pink;
+        }
+
+        .time {
+            width: 250px;
+            text-align: right;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="music-box">
+        <div class="music">
+            <div class="control">
+                <span class="backward"><i class="icon-backward"></i></span>
+                <span class="play"><i class="icon-play"></i></span>
+                <span class="forward"><i class="icon-forward"></i></span>
+            </div>
+            <div class="info">
+                <h3 class="music-title">如果</h3>
+                <p class="music-author">汪苏泷</p>
+            </div>
+        </div>
+        <div class="progress">
+            <div class="full-time">
+                <div class="current-time"></div>
+            </div>
+            <div class="time"><span>0:00</span></div>
+        </div>
+        <audio controls id="mymusic">
+            <source src="" />
+        </audio>
+    </div>
+    <script>
+        var audioObject = document.querySelector("#mymusic");
+        var musicTitle = document.querySelector(".music-title");
+        var musicAuthor = document.querySelector(".music-author");
+        var player = document.querySelector(".play");
+        var forward = document.querySelector(".forward");
+        var back = document.querySelector(".backward");
+        var currentTimeBar = document.querySelector(".current-time");
+        var showTime = document.querySelector(".time span");
+        var fullTime = document.querySelector(".full-time");
+        //music对象数组
+        var musicList = [{
+            src: "./玫瑰.mp3",
+            title: "玫瑰",
+            author: "贰陌"
+        }, {
+            src: "./horse.mp3",
+            title: "1",
+            author: "2"
+        }];
+        //定义定时器的id和音乐对象的索引
+        var timer, musicIndex = 0;
+        //运行函数将json数据赋值给音乐数组
+        try {
+            throw new Error("xhr请求失败");
+            getmusic(function (music) {
+                musicList = music;
+            });
+        } catch (error) {
+            console.log(error.message);
+        }
+        //加载第一首
+        loadMusic(musicList[0]);
+        //注册上一首，播放，下一首图标的点击事件
+        player.addEventListener("click", playMusic);
+        forward.addEventListener("click", lastMusic);
+        back.addEventListener("click", nextMusic);
+        //音乐结束后加载下一首
+        audioObject.addEventListener("ended", function () {
+            nextMusic();
+        });
+        //音乐实际播放时触发
+        audioObject.onplaying = function () {
+            timer = setInterval(updateProgress, 1000);
+            player.firstChild.className = "icon-pause";
+        };
+        //音乐暂停时触发
+        audioObject.onpause = function () {
+            clearInterval(timer);
+            player.firstChild.className = "icon-play";
+
+        };
+        //改变播放时间
+        fullTime.onclick = function (e) {
+            audioObject.currentTime = e.offsetX / 250 * audioObject.duration;
+            updateProgress();
+        };
+        //加载并初始化music
+        function loadMusic(music) {
+            audioObject.src = music.src;
+            musicTitle.innerHTML = music.title;
+            musicAuthor.innerHTML = music.author;
+            currentTimeBar.style.width = "0";
+            showTime.innerHTML = "0:00";
+        }
+        //改变music的播放状态
+        function playMusic() {
+            if (audioObject.paused) {
+                audioObject.play();
+            } else {
+                audioObject.pause();
+            }
+        }
+        //改变进度条和时间
+        function updateProgress() {
+            var percent = audioObject.currentTime / audioObject.duration * 100 + "%";
+            //赋值百分比宽度
+            currentTimeBar.style.width = percent;
+            var currentTime = audioObject.currentTime;
+            var seconds = Math.ceil(currentTime % 60);
+            //判断秒数的位数
+            seconds = seconds < 10 ? "0" + seconds : seconds;
+            var playedTime = Math.floor(currentTime / 60) + ":" + seconds;
+            showTime.innerHTML = playedTime;
+        }
+
+        function nextMusic() {
+            musicIndex++;
+            musicIndex = musicIndex % musicList.length;
+            loadMusic(musicList[musicIndex]);
+            player.firstChild.className = "icon-play";
+        }
+
+        function lastMusic() {
+            musicIndex--;
+            musicIndex = (musicList.length + musicIndex) % musicList.length;
+            loadMusic(musicList[musicIndex]);
+            player.firstChild.className = "icon-play";
+        }
+        //发送ajax请求
+        function getmusic(callback) {
+                var xhr = new XMLHttpRequest();
+                xhr.open("get", "music.json", true);
+                xhr.send(null);
+                xhr.onload = function () {
+                    if ((xhr.status >= 200 && xhr.status < 300) || xhr.status == 300) {
+                        callback(JSON.parse(xhr.responseText));
+                    }
+                };
+        }
+    </script>
+</body>
+
+</html>
